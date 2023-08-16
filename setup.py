@@ -11,7 +11,7 @@ setup(
     url="",
     download_url="",
     keywords=["AsyncIO", "Repository", "SQLAlchemy", "Unit of Work", "UoW"],
-    install_requires=["sqlalchemy==1.4.0", "asyncpg==0.24.0"],
+    install_requires=["sqlalchemy==1.4.0"],
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Developers",
