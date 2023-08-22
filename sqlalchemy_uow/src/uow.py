@@ -47,13 +47,15 @@ class UnitOfWork:
             await session.close()
 
     async def create_schemas(self, schemas: List[str]):
-        async with self._engine.begin() as connection:
-            for schema in schemas:
-                try:
-                    await connection.execute(CreateSchema(name=schema))
-                except Exception:
-                    pass
-
+        for schema in schemas:
+            try:
+                await self.start_transaction()
+                await self.execute(CreateSchema(name=schema))
+                await self.commit()
+                await self.close()
+            except:
+                await self.close()
+        
     async def create_tables(self):
         async with self._engine.begin() as connection:
             await connection.run_sync(Entity.metadata.create_all)
