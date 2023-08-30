@@ -5,6 +5,8 @@ from sqlalchemy.sql.expression import delete
 from sqlalchemy.future import select
 from sqlalchemy_uow.src.entity import Entity
 from typing import Optional, List
+from sqlalchemy.ext.asyncio import AsyncEngine
+from sqlalchemy.engine.reflection import Inspector
 
 
 class Repository:
@@ -15,6 +17,20 @@ class Repository:
         self._session.add(entity)
         await self._session.flush()
 
+    async def insert_on_conflict_do_nothing(self, entity: Entity):
+        properties = entity.__dict__.copy()
+        properties.pop("_sa_instance_state")
+        await self._session.execute(insert(entity.__table__, properties).on_conflict_do_nothing())
+        await self._session.flush()
+
+    async def insert_on_conflict_do_update(self, entity: Entity, index_elements: list = ["id"]):
+        properties = entity.__dict__.copy()
+        properties.pop("_sa_instance_state")
+        await self._session.execute(
+            insert(entity.__table__, properties).on_conflict_do_update(index_elements=index_elements, set_=properties)
+        )
+        await self._session.flush()
+
     async def bulk_insert(self, entities: Optional[List[Entity]] = []):
         rows = []
         if entities:
@@ -22,8 +38,8 @@ class Repository:
                 properties = entity.__dict__.copy()
                 properties.pop("_sa_instance_state")
                 rows.append(properties)
-            await self.session.execute(insert(entities[0].__table__), rows)
-            await self.session.flush()
+            await self._session.execute(insert(entities[0].__table__), rows)
+            await self._session.flush()
 
     async def select(self, entity: Entity, filters: dict):
         rows = await self._session.execute(select(entity).filter_by(**filters))
