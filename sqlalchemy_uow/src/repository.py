@@ -46,6 +46,23 @@ class Repository:
             result = await self._session.execute(select(entity.__table__).filter_by(**non_timestamp_properties))
             return result.fetchone()[0]
 
+    async def upsert_get_id(self, entity: Entity, index_elements: list = ["id"]):
+        properties = entity.__dict__.copy()
+        properties.pop("_sa_instance_state")
+
+        query = insert(entity.__table__, properties).on_conflict_do_update(
+            index_elements=index_elements, set_=properties
+        )
+        result = await self._session.execute(query)
+        await self._session.flush()
+
+        if result.inserted_primary_key:
+            return result.inserted_primary_key[0]
+        else:
+            non_timestamp_properties = {k: v for k, v in properties.items() if type(v) in [str, int, float, bool]}
+            result = await self._session.execute(select(entity.__table__).filter_by(**non_timestamp_properties))
+            return result.fetchone()[0]
+
     async def bulk_insert(self, entities: Optional[List[Entity]] = []):
         rows = []
         if entities:
